@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "432963026298",
+    "project_id": "typocalypse-v1",
+    "storage_bucket": "typocalypse-v1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:432963026298:android:092a63d425e8f5073c2ac3",
+        "android_client_info": {
+          "package_name": "com.example.typocalypse"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCivhkR-h1dMl0aQnj03UpJbu3OgMnnRYI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
