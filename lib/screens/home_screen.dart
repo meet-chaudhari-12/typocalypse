@@ -1,13 +1,19 @@
+// lib/screens/home_screen.dart
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:typocalypse/data/sentences.dart';
+import 'package:typocalypse/core/fade_page_route.dart';
+import 'package:typocalypse/data/sentences.dart'; // Assuming you have sentence lists here
 import 'package:typocalypse/screens/auth_screen.dart';
 import 'package:typocalypse/screens/leaderboard_screen.dart';
 import 'package:typocalypse/screens/profile_screen.dart';
 import 'package:typocalypse/screens/typing_game_screen.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -17,13 +23,15 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<int> _timeOptions = [15, 30, 45, 60, 90, 120];
   int? _customTime;
 
-  void startGame(BuildContext context, List<String> sentences) {
+  // UPDATED: Add difficultyLevel parameter to function definition
+  void startGame(BuildContext context, List<String> sentences, String difficultyLevel) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => TypingGameScreen(
+      FadePageRoute(
+        child: TypingGameScreen(
           sentences: sentences..shuffle(),
           durationInSeconds: _selectedTime,
+          difficultyLevel: difficultyLevel, // UPDATED: Pass the difficulty level here
         ),
       ),
     );
@@ -34,22 +42,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: Text('Enter Custom Time', style: GoogleFonts.ebGaramond(color: Colors.white)),
+        backgroundColor: Theme.of(context).cardColor,
+        title: Text('Enter Custom Time', style: Theme.of(context).textTheme.headlineSmall),
         content: TextField(
           controller: customTimeController,
           autofocus: true,
           keyboardType: TextInputType.number,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-              hintText: "Seconds",
-              hintStyle: TextStyle(color: Colors.white38)
-          ),
+          style: Theme.of(context).textTheme.bodyMedium,
+          decoration: const InputDecoration(hintText: "Seconds (min 15)"),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -63,11 +68,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (result != null && result.isNotEmpty) {
       final int? time = int.tryParse(result);
-      if (time != null && time > 0) {
-        setState(() {
-          _customTime = time;
-          _selectedTime = time;
-        });
+      if (time != null) {
+        if (time >= 15) {
+          setState(() {
+            _customTime = time;
+            _selectedTime = time;
+          });
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text("Minimum custom time is 15 seconds."),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          }
+        }
       }
     }
   }
@@ -81,6 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        automaticallyImplyLeading: false,
         title: Text(
           'TYPOCALYPSE',
           style: GoogleFonts.eduNswActFoundation(
@@ -92,136 +109,116 @@ class _HomeScreenState extends State<HomeScreen> {
           if (isLoggedIn)
             IconButton(
               icon: const Icon(Icons.person),
+              tooltip: "Profile",
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+                Navigator.push(context, FadePageRoute(child: const ProfileScreen()));
               },
             ),
           if (isLoggedIn)
             IconButton(
               icon: const Icon(Icons.logout),
+              tooltip: "Logout",
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
                 if (mounted) {
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const AuthScreen()),
+                    FadePageRoute(child: const AuthScreen()),
                         (route) => false,
                   );
                 }
               },
             ),
+          if (!isLoggedIn)
+            IconButton(
+              icon: const Icon(Icons.login),
+              tooltip: "Login or Sign Up",
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  FadePageRoute(child: const AuthScreen()),
+                      (route) => false,
+                );
+              },
+            ),
         ],
       ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            'assets/images/volcano_bg.jpg',
-            fit: BoxFit.cover,
-          ),
-          Container(color: Colors.black.withOpacity(0.7)),
-          Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Select Time Limit',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8.0,
+                alignment: WrapAlignment.center,
                 children: [
-                  const Text(
-                    'Select Time Limit',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8.0,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      ..._timeOptions.map((time) {
-                        final isSelected = _selectedTime == time;
-                        return ChoiceChip(
-                          label: Text('$time s'),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() {
-                                _selectedTime = time;
-                                _customTime = null;
-                              });
-                            }
-                          },
-                          backgroundColor: Colors.grey.shade800,
-                          selectedColor: Theme.of(context).colorScheme.secondary,
-                          labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.white70),
-                        );
-                      }).toList(),
-                      ChoiceChip(
-                        label: Text(_customTime != null ? 'Custom (${_customTime}s)' : 'Custom'),
-                        selected: _customTime != null,
-                        onSelected: (selected) {
-                          _showCustomTimeDialog();
-                        },
-                        backgroundColor: Colors.grey.shade800,
-                        selectedColor: Theme.of(context).colorScheme.secondary,
-                        labelStyle: TextStyle(color: _customTime != null ? Colors.white : Colors.white70),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 48),
-                  const Text(
-                    'Select Difficulty',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => startGame(context, easySentences),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(200, 50),
-                      backgroundColor: Colors.green,
-                      textStyle: const TextStyle(fontSize: 18),
-                    ),
-                    child: const Text("Easy"),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => startGame(context, mediumSentences),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(200, 50),
-                      backgroundColor: Colors.orange,
-                      textStyle: const TextStyle(fontSize: 18),
-                    ),
-                    child: const Text("Medium"),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => startGame(context, hardSentences),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(200, 50),
-                      backgroundColor: Colors.red,
-                      textStyle: const TextStyle(fontSize: 18),
-                    ),
-                    child: const Text("Hard"),
-                  ),
-                  const SizedBox(height: 24),
-                  const Divider(indent: 80, endIndent: 80),
-                  const SizedBox(height: 24),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.leaderboard),
-                    label: const Text("View Leaderboard"),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(200, 50),
-                      foregroundColor: Colors.white70,
-                      side: const BorderSide(color: Colors.white70),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const LeaderboardScreen()),
-                      );
-                    },
+                  ..._timeOptions.map((time) {
+                    final isSelected = _selectedTime == time && _customTime == null; // Ensure custom time deselects standard times
+                    return ChoiceChip(
+                      label: Text('$time s'),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() {
+                            _selectedTime = time;
+                            _customTime = null;
+                          });
+                        }
+                      },
+                    );
+                  }).toList(),
+                  ChoiceChip(
+                    label: Text(_customTime != null ? 'Custom (${_customTime}s)' : 'Custom'),
+                    selected: _customTime != null,
+                    onSelected: (selected) => _showCustomTimeDialog(),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 48),
+              const Text(
+                'Select Difficulty',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              // --- UPDATED: Pass difficulty string on press ---
+              ElevatedButton(
+                onPressed: () => startGame(context, easySentences, "Easy"), // Pass "Easy"
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                child: const Text("Easy"),
+              ).animate().fade(duration: 500.ms).slideY(begin: 0.5),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () => startGame(context, mediumSentences, "Medium"), // Pass "Medium"
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                child: const Text("Medium"),
+              ).animate().fade(delay: 200.ms, duration: 500.ms).slideY(begin: 0.5),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () => startGame(context, hardSentences, "Hard"), // Pass "Hard"
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text("Hard"),
+              ).animate().fade(delay: 400.ms, duration: 500.ms).slideY(begin: 0.5),
+              const SizedBox(height: 24),
+              const Divider(indent: 80, endIndent: 80),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.leaderboard),
+                label: const Text("View Leaderboard"),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    FadePageRoute(child: const LeaderboardScreen()),
+                  );
+                },
+              ).animate().fade(delay: 600.ms, duration: 500.ms),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

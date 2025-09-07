@@ -39,7 +39,13 @@ dependencies:
   cloud_firestore: ^4.17.2
   google_fonts: ^6.2.1
   audioplayers: ^6.0.0
-
+  simple_animations: ^5.0.2
+  animated_background: ^2.0.0
+  flutter_animate: ^4.5.0
+  fl_chart: ^0.68.0
+  image_picker: ^1.0.7
+  firebase_storage: ^11.7.0
+  share_plus: ^9.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -95,3 +101,4 @@ flutter:
   assets:
     - assets/images/
     - assets/audio/
+    - assets/animations/
